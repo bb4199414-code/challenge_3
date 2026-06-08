@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climatica - Understand, Track, and Reduce Your Carbon Footprint</title>
+  <meta name="description" content="Calculate your carbon footprint, track daily eco-friendly habits, get personalized tips, and offset your emissions with Climatica.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- SVG Gradients for Logo and Icons -->
+  <svg style="width:0; height:0; position:absolute;" aria-hidden="true">
+    <defs>
+      <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#10b981" />
+        <stop offset="100%" stop-color="#06b6d4" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Sticky Header & Navigation -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="logo" id="logo-home">
+        <!-- Emerald Leaf Logo Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 7a7 7 0 0 1-7 7h-3" />
+          <path d="M9 22v-4h4" />
+        </svg>
+        <span>Climatica</span>
+      </a>
+      <nav>
+        <ul id="main-nav-list" style="display: none;">
+          <li><a href="#" class="nav-link active" data-target="dashboard-view">Dashboard</a></li>
+          <li><a href="#" class="nav-link" data-target="habits-view">Daily Habits</a></li>
+          <li><a href="#" class="nav-link" data-target="offsets-view">Offset Projects</a></li>
+          <li><a href="#" class="nav-link accent" id="btn-recalculate">Recalculate</a></li>
+        </ul>
+      </nav>
+      <!-- User Profile level chip -->
+      <div class="nav-profile" id="user-profile-widget" style="display: none;">
+        <span class="badge-icon" id="nav-level-badge">🌱</span>
+        <div>
+          <div style="font-size: 0.8rem; font-weight: 700; color: white;" id="nav-level-name">Eco-Novice</div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div class="xp-indicator"><span id="nav-xp-val">0</span> XP</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- HERO SECTION (Shown before calculator is completed) -->
+    <section id="hero-section" class="view-section active">
+      <div class="hero-card">
+        <h1>Take Control of Your Carbon Footprint</h1>
+        <p>Small habits lead to planetary impact. Calculate your carbon footprint in under 2 minutes, establish daily positive actions, and track your progress to carbon neutrality.</p>
+        <button class="btn btn-primary" id="btn-start-calc">
+          Get Started
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ONBOARDING CALCULATOR SECTION (Wizard Flow) -->
+    <section id="calculator-section" class="view-section">
+      <div class="calculator-container card">
+        <div class="calc-live-ticker">
+          <span>Live Estimated Footprint:</span>
+          <span class="val"><span id="calc-live-val">0.0</span> Tons CO₂e / yr</span>
+        </div>
+
+        <div class="wizard-progress">
+          <div class="wizard-progress-bar" id="wizard-progress-bar"></div>
+          <div class="step-dot active" data-step="0">1</div>
+          <div class="step-dot" data-step="1">2</div>
+          <div class="step-dot" data-step="2">3</div>
+          <div class="step-dot" data-step="3">4</div>
+        </div>
+
+        <!-- Step 1: Transport -->
+        <div class="calculator-step active" id="step-0">
+          <div class="step-header">
+            <h2>Transportation</h2>
+            <p>Tell us how you commute and travel on an average week.</p>
+          </div>
+          <div class="form-group">
+            <label for="calc-car-distance">Weekly Driving Distance (km)</label>
+            <div class="input-slider-wrapper">
+              <input type="range" id="calc-car-distance" min="0" max="600" value="120">
+              <span class="slider-val"><span id="val-car-distance">120</span> km</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Primary Car Engine Type</label>
+            <div class="option-grid" id="car-engine-select">
+              <div class="option-card selected" data-value="petrol">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">⛽</span>
+                <strong>Gasoline/Diesel</strong>
+              </div>
+              <div class="option-card" data-value="hybrid">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🔋</span>
+                <strong>Hybrid</strong>
+              </div>
+              <div class="option-card" data-value="electric">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">⚡</span>
+                <strong>Electric</strong>
+              </div>
+              <div class="option-card" data-value="none">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🚴</span>
+                <strong>No Car / Transit</strong>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="calc-flights">Annual Flights taken (hours total)</label>
+            <div class="input-slider-wrapper">
+              <input type="range" id="calc-flights" min="0" max="100" value="8">
+              <span class="slider-val"><span id="val-flights">8</span> hrs</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Energy -->
+        <div class="calculator-step" id="step-1">
+          <div class="step-header">
+            <h2>Home Energy</h2>
+            <p>How clean is your home power and heating setup?</p>
+          </div>
+          <div class="form-group">
+            <label for="calc-electricity">Monthly Electricity Bill ($ USD)</label>
+            <div class="input-slider-wrapper">
+              <input type="range" id="calc-electricity" min="0" max="350" value="80">
+              <span class="slider-val">$<span id="val-electricity">80</span></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Clean Energy Sources</label>
+            <div class="option-grid" id="clean-energy-select">
+              <div class="option-card selected" data-value="grid">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🔌</span>
+                <strong>Standard Grid</strong>
+              </div>
+              <div class="option-card" data-value="partial">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">⛅</span>
+                <strong>Partial Solar / Clean</strong>
+              </div>
+              <div class="option-card" data-value="full">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">☀️</span>
+                <strong>100% Green Tariff</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Food & Diet -->
+        <div class="calculator-step" id="step-2">
+          <div class="step-header">
+            <h2>Diet & Nutrition</h2>
+            <p>Food production is a large driver of individual greenhouse gas emissions.</p>
+          </div>
+          <div class="form-group">
+            <label>What best describes your eating habits?</label>
+            <div class="option-grid" id="diet-select">
+              <div class="option-card selected" data-value="heavy-meat">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🥩</span>
+                <strong>Meat Lover</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">Red meat multiple times a week</p>
+              </div>
+              <div class="option-card" data-value="average">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🍗</span>
+                <strong>Balanced</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">Occasional poultry/fish, minimal beef</p>
+              </div>
+              <div class="option-card" data-value="vegetarian">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🧀</span>
+                <strong>Vegetarian</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">No meat, includes dairy/eggs</p>
+              </div>
+              <div class="option-card" data-value="vegan">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🥗</span>
+                <strong>Vegan</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">100% plant-based diet</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="calc-food-waste">How much food is wasted in your house?</label>
+            <div class="input-slider-wrapper">
+              <input type="range" id="calc-food-waste" min="0" max="50" value="15">
+              <span class="slider-val"><span id="val-food-waste">15</span>%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Consumption & Shopping -->
+        <div class="calculator-step" id="step-3">
+          <div class="step-header">
+            <h2>Consumption Habits</h2>
+            <p>New goods, fashion, and services represent embedded emissions.</p>
+          </div>
+          <div class="form-group">
+            <label>How frequently do you buy brand-new products (clothing, gadgets, furniture)?</label>
+            <div class="option-grid" id="shopping-select">
+              <div class="option-card selected" data-value="high">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">🛍️</span>
+                <strong>Frequent</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">Regular shopping, buying newest trends</p>
+              </div>
+              <div class="option-card" data-value="average">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">📦</span>
+                <strong>Moderate</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">Buy when needed, replace broken items</p>
+              </div>
+              <div class="option-card" data-value="low">
+                <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">♻️</span>
+                <strong>Minimalist / Secondhand</strong>
+                <p style="font-size: 0.75rem; margin-top: 0.25rem;">Prefer thrift, repair items before replacing</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nav Controls -->
+        <div class="calculator-actions">
+          <button class="btn btn-secondary" id="btn-calc-back" disabled>Back</button>
+          <button class="btn btn-primary" id="btn-calc-next">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD VIEW -->
+    <section id="dashboard-view" class="view-section">
+      <!-- Welcome Headline -->
+      <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; color: white;" id="dashboard-welcome-name">Welcome Back, Eco-Warrior!</h1>
+        <p>Here is your current climate dashboard and carbon reduction overview.</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Row 1 Stat Widgets -->
+        <div class="card col-4 stat-widget">
+          <div class="stat-icon-wrapper emerald">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Your Annual Footprint</span>
+            <span class="stat-value"><span id="dash-footprint-val">0.0</span> Tons CO₂e</span>
+          </div>
+        </div>
+
+        <div class="card col-4 stat-widget">
+          <div class="stat-icon-wrapper teal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Offset Status</span>
+            <span class="stat-value" id="dash-offset-pct">0% Neutral</span>
+          </div>
+        </div>
+
+        <div class="card col-4 stat-widget">
+          <div class="stat-icon-wrapper amber">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Habit Streak</span>
+            <span class="stat-value"><span id="dash-streak-val">0</span> Days 🔥</span>
+          </div>
+        </div>
+
+        <!-- Row 2 Chart and Tips -->
+        <div class="card col-8">
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            Carbon Footprint Breakdown
+          </div>
+          <div class="chart-card-content">
+            <!-- Dynamic SVG Donut Chart -->
+            <svg width="200" height="200" class="svg-donut-chart" id="dashboard-donut-svg">
+              <!-- Animated SVG sections generated dynamically in JS -->
+              <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="14"></circle>
+              <!-- Center details -->
+              <g class="donut-center-text" transform="translate(100, 100) rotate(90)">
+                <text y="-5" fill="white" font-weight="bold" font-size="20" id="donut-center-val">0.0</text>
+                <text y="15" fill="#9ca3af" font-size="10" letter-spacing="0.05em">TONS/YR</text>
+              </g>
+            </svg>
+            <!-- Chart Legend -->
+            <div class="chart-legend" id="dashboard-legend-list">
+              <!-- Legend items with hover actions -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card col-4" style="display: flex; flex-direction: column;">
+          <div class="card-title" style="color: var(--teal);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+            Personalized Insights
+          </div>
+          <div id="dashboard-tips-box" style="flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; justify-content: center;">
+            <!-- Generated dynamically based on calculator items -->
+          </div>
+        </div>
+
+        <!-- Row 3: Daily Action Highlight & Future Simulator -->
+        <div class="card col-6">
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Today's Eco Checklist
+          </div>
+          <div class="habit-tracker-container" id="dashboard-quick-habits">
+            <!-- Dynamic checklist containing 3 key daily habits -->
+          </div>
+          <div style="margin-top: 1.25rem; text-align: right;">
+            <button class="btn btn-secondary btn-sm" id="btn-dash-go-habits">View All Habits &rarr;</button>
+          </div>
+        </div>
+
+        <div class="card col-6">
+          <div class="card-title" style="color: var(--emerald);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Action Simulator
+          </div>
+          <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Adjust the sliders to simulate systemic or long-term lifestyle changes and see how your target footprint drops.</p>
+          <div class="sim-controls">
+            <div class="sim-row">
+              <div class="sim-info">
+                <span class="sim-label">Clean Energy Tariff</span>
+                <span class="sim-reduction" id="sim-val-energy">None</span>
+              </div>
+              <input type="range" id="sim-range-energy" min="0" max="2" value="0">
+            </div>
+            <div class="sim-row">
+              <div class="sim-info">
+                <span class="sim-label">Reduce Commute Driving</span>
+                <span class="sim-reduction" id="sim-val-commute">0% Less</span>
+              </div>
+              <input type="range" id="sim-range-commute" min="0" max="100" value="0" step="20">
+            </div>
+            <div class="sim-row">
+              <div class="sim-info">
+                <span class="sim-label">Plant-Based Diet Shift</span>
+                <span class="sim-reduction" id="sim-val-diet">No Change</span>
+              </div>
+              <input type="range" id="sim-range-diet" min="0" max="2" value="0">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HABITS & REDUCTION VIEW -->
+    <section id="habits-view" class="view-section">
+      <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h1 style="font-size: 2rem; color: white;">Daily Eco-Habits</h1>
+          <p>Commit to small daily changes and earn XP toward your environmental badges.</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; gap: 1.5rem;">
+          <div style="text-align: center;">
+            <div style="font-size: 0.75rem; color: #9ca3af;">Total CO₂ Saved</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald);" id="habits-stat-co2">0.0 kg</div>
+          </div>
+          <div style="text-align: center; border-left: 1px solid var(--border-light); padding-left: 1.5rem;">
+            <div style="font-size: 0.75rem; color: #9ca3af;">Level XP</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--teal);"><span id="habits-stat-xp">0</span> / 1000</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Habit checklist panel -->
+        <div class="card col-8">
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Active Daily Actions
+          </div>
+          <div class="habit-tracker-container" id="habits-full-list" style="margin-bottom: 1.5rem;">
+            <!-- Complete daily list loaded from JS -->
+          </div>
+
+          <!-- Custom habit form -->
+          <div style="border-top: 1px solid var(--border-light); padding-top: 1.25rem;">
+            <h3 style="font-size: 0.95rem; color: white; margin-bottom: 0.5rem;">Create a Custom Habit</h3>
+            <form class="custom-habit-form" id="form-custom-habit" onsubmit="return false;">
+              <input type="text" id="custom-habit-title" placeholder="e.g. Unplugged all home adapters" class="form-input-text" required>
+              <select id="custom-habit-difficulty" class="form-input-text">
+                <option value="easy">Easy (1.0 kg CO₂)</option>
+                <option value="medium" selected>Medium (2.5 kg CO₂)</option>
+                <option value="hard">Hard (5.0 kg CO₂)</option>
+              </select>
+              <button class="btn btn-primary" type="submit">Add Action</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Badges Showcase side widget -->
+        <div class="card col-4">
+          <div class="card-title" style="color: var(--amber);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Climatica Badges
+          </div>
+          <p style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 1.25rem;">Complete habits and levels to unlock eco-milestone badges.</p>
+          <div class="badge-grid" id="badges-grid-container">
+            <!-- Dynamically populated badges -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OFFSET PROJECTS VIEW -->
+    <section id="offsets-view" class="view-section">
+      <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h1 style="font-size: 2rem; color: white;">Carbon Offset Marketplace</h1>
+          <p>Offset remaining unavoidable emissions by supporting certified carbon reduction projects around the world.</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 12px; padding: 0.75rem 1.25rem; text-align: center;">
+          <div style="font-size: 0.75rem; color: #9ca3af;">Total Offsets Purchased</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: var(--teal);"><span id="offsets-stat-tons">0.0</span> Tons CO₂</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Marketplace Cards -->
+        <div class="col-12">
+          <div class="offset-grid" id="offset-projects-container">
+            <!-- Loaded from offsets.js -->
+          </div>
+        </div>
+
+        <!-- Custom Certificate Generator -->
+        <div class="card col-12" style="margin-top: 1rem;">
+          <div class="dashboard-grid">
+            <div class="col-6" style="display: flex; flex-direction: column; justify-content: center; padding-right: 1.5rem;">
+              <div class="card-title" style="color: var(--emerald);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Generate Carbon Neutral Certificate
+              </div>
+              <p style="margin-bottom: 1.25rem; font-size: 0.9rem;">Once you buy offsets and balance your footprint, you can render and print a digital certificate recognizing your commitment to a carbon-neutral life.</p>
+              
+              <div class="form-group">
+                <label for="cert-name-input">Certificate Holder Name</label>
+                <input type="text" id="cert-name-input" placeholder="Enter your full name" class="form-input-text" style="width: 100%;">
+              </div>
+              
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" id="btn-render-cert">Generate Certificate</button>
+                <button class="btn btn-secondary" id="btn-print-cert">Print / Save PDF</button>
+              </div>
+            </div>
+
+            <!-- Certificate Mockup Preview -->
+            <div class="col-6 certificate-preview-container">
+              <div class="cert-card" id="printable-certificate">
+                <div class="cert-seal">🏆</div>
+                <h2 class="cert-title">Certificate of Carbon Neutrality</h2>
+                <p class="cert-text">This document proudly certifies that</p>
+                <div class="cert-recipient" id="cert-display-name">Eco Explorer</div>
+                <p class="cert-text" style="font-size: 0.85rem; margin-bottom: 1.5rem; max-width: 380px; margin-left: auto; margin-right: auto;">
+                  has taken proactive steps to calculate, reduce, and successfully offset their personal greenhouse gas emissions.
+                </p>
+                <div class="cert-metrics">
+                  <div class="cert-stat">
+                    <span class="cert-stat-val"><span id="cert-val-footprint">0.0</span> t</span>
+                    <span class="cert-stat-label">Footprint</span>
+                  </div>
+                  <div class="cert-stat" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                    <span class="cert-stat-val"><span id="cert-val-offset">0.0</span> t</span>
+                    <span class="cert-stat-label">Offset</span>
+                  </div>
+                  <div class="cert-stat" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                    <span class="cert-stat-val" style="color: var(--emerald);">100%</span>
+                    <span class="cert-stat-label">Status</span>
+                  </div>
+                </div>
+                <div class="cert-footer">
+                  Verified by Climatica Registry &bull; Date: <span id="cert-date">June 8, 2026</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Climatica. Helping humanity step lightly on the earth. Powered by data.</p>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Stack Container -->
+  <div class="toast-container" id="toast-outlet"></div>
+
+  <!-- JavaScript Modules Load -->
+  <script src="calculator.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="habits.js"></script>
+  <script src="offsets.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
