@@ -7,6 +7,18 @@ const App = {
     calculatorSelections: null
   },
 
+  /**
+   * Sanitize a user-supplied name for safe DOM rendering.
+   * @param {string} name - Raw input
+   * @returns {string} Safe text
+   */
+  sanitizeName(name) {
+    if (typeof name !== 'string') return '';
+    return name.replace(/<[^>]*>/g, '').replace(/[&<>"'/]/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;'
+    })[c] || c).trim().slice(0, 80);
+  },
+
   init() {
     this.loadState();
     this.setupNavigation();
@@ -15,19 +27,27 @@ const App = {
   },
 
   loadState() {
-    const saved = localStorage.getItem('climatica_global_state');
-    if (saved) {
-      try {
-        this.state = JSON.parse(saved);
-      } catch (e) {
-        console.error("Error loading global state, resetting.", e);
-        this.state = { isOnboarded: false, footprint: null, calculatorSelections: null };
+    try {
+      const saved = localStorage.getItem('climatica_global_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Validate expected shape before trusting data
+        if (typeof parsed === 'object' && parsed !== null) {
+          this.state = parsed;
+        }
       }
+    } catch (e) {
+      console.warn('Climatica: could not load state from localStorage.', e);
+      this.state = { isOnboarded: false, footprint: null, calculatorSelections: null };
     }
   },
 
   saveState() {
-    localStorage.setItem('climatica_global_state', JSON.stringify(this.state));
+    try {
+      localStorage.setItem('climatica_global_state', JSON.stringify(this.state));
+    } catch (e) {
+      console.warn('Climatica: could not save state to localStorage.', e);
+    }
   },
 
   setupNavigation() {
