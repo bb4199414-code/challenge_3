@@ -39,6 +39,21 @@ const Habits = {
     this.render();
   },
 
+  /**
+   * Sanitize user-supplied text to prevent XSS.
+   * Strips HTML tags and escapes special characters.
+   * @param {string} str - Raw user input
+   * @returns {string} Safe plain text
+   */
+  sanitizeInput(str) {
+    if (typeof str !== 'string') return '';
+    // Remove any HTML tags
+    const stripped = str.replace(/<[^>]*>/g, '');
+    // Escape remaining special characters
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;' };
+    return stripped.replace(/[&<>"'/]/g, (char) => map[char] || char).trim();
+  },
+
   loadState() {
     const saved = localStorage.getItem('climatica_habits_state');
     if (saved) {
@@ -103,22 +118,53 @@ const Habits = {
   handleAddCustomHabit() {
     const titleInput = document.getElementById('custom-habit-title');
     const difficultyInput = document.getElementById('custom-habit-difficulty');
+    const errorEl = document.getElementById('form-error-msg');
     if (!titleInput || !difficultyInput) return;
 
-    const title = titleInput.value.trim();
-    const difficulty = difficultyInput.value;
-    if (!title) return;
+    // Sanitize and validate input
+    const rawTitle = titleInput.value;
+    const title = this.sanitizeInput(rawTitle);
 
-    // Determine impact & xp based on difficulty
+    if (!title || title.length < 3) {
+      if (errorEl) {
+        errorEl.textContent = 'Please enter a habit description of at least 3 characters.';
+        errorEl.classList.remove('visually-hidden');
+      }
+      titleInput.setAttribute('aria-invalid', 'true');
+      titleInput.focus();
+      return;
+    }
+
+    if (title.length > 120) {
+      if (errorEl) {
+        errorEl.textContent = 'Habit description must be 120 characters or fewer.';
+        errorEl.classList.remove('visually-hidden');
+      }
+      titleInput.setAttribute('aria-invalid', 'true');
+      return;
+    }
+
+    // Clear any prior error
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.add('visually-hidden');
+    }
+    titleInput.removeAttribute('aria-invalid');
+
+    const difficulty = difficultyInput.value;
+    // Whitelist allowed values
+    const allowedDifficulties = ['easy', 'medium', 'hard'];
+    const safeDifficulty = allowedDifficulties.includes(difficulty) ? difficulty : 'medium';
+
     let impact = 1.0;
     let xp = 10;
-    if (difficulty === 'medium') { impact = 2.5; xp = 20; }
-    else if (difficulty === 'hard') { impact = 5.0; xp = 30; }
+    if (safeDifficulty === 'medium') { impact = 2.5; xp = 20; }
+    else if (safeDifficulty === 'hard') { impact = 5.0; xp = 30; }
 
     const newHabit = {
       id: 'custom_' + Date.now(),
       title,
-      difficulty,
+      difficulty: safeDifficulty,
       impact,
       xp,
       checked: false
@@ -128,10 +174,8 @@ const Habits = {
     this.saveState();
     this.render();
 
-    // Reset inputs
     titleInput.value = '';
-    
-    // Show toast
+
     if (window.App) {
       window.App.showToast(`Custom action "${title}" added!`, 'info');
     }
