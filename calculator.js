@@ -96,14 +96,29 @@ const Calculator = {
     if (!grid) return;
 
     const cards = grid.querySelectorAll('.option-card');
+
+    const selectCard = (card) => {
+      cards.forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('selected');
+      card.setAttribute('aria-checked', 'true');
+      const value = card.getAttribute('data-value');
+      this.selections[selectionKey] = value;
+      this.calculateLive();
+    };
+
     cards.forEach(card => {
-      card.addEventListener('click', () => {
-        cards.forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        
-        const value = card.getAttribute('data-value');
-        this.selections[selectionKey] = value;
-        this.calculateLive();
+      // Mouse click
+      card.addEventListener('click', () => selectCard(card));
+
+      // Keyboard: Enter or Space activates the card
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectCard(card);
+        }
       });
     });
   },
