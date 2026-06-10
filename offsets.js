@@ -68,8 +68,13 @@ const Offsets = {
       btnRender.addEventListener('click', () => {
         const nameInput = document.getElementById('cert-name-input');
         if (nameInput) {
-          const name = nameInput.value.trim();
-          if (name) {
+          const rawName = nameInput.value;
+          // Sanitize: strip HTML, escape special chars, enforce max length
+          const name = rawName.replace(/<[^>]*>/g, '').replace(/[&<>"'/]/g, (c) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;'
+          })[c] || c).trim().slice(0, 80);
+
+          if (name && name.length >= 2) {
             this.state.certHolderName = name;
             this.saveState();
             this.updateCertificateUI();
@@ -78,7 +83,7 @@ const Offsets = {
             }
           } else {
             if (window.App) {
-              window.App.showToast("Please enter a name first", "info");
+              window.App.showToast("Please enter a valid name (at least 2 characters).", "info");
             }
           }
         }
