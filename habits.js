@@ -47,9 +47,7 @@ const Habits = {
    */
   sanitizeInput(str) {
     if (typeof str !== 'string') return '';
-    // Remove any HTML tags
     const stripped = str.replace(/<[^>]*>/g, '');
-    // Escape remaining special characters
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;' };
     return stripped.replace(/[&<>"'/]/g, (char) => map[char] || char).trim();
   },
@@ -60,22 +58,21 @@ const Habits = {
       try {
         this.state = JSON.parse(saved);
         
-        // Check if day changed to reset checked states, but keep streak rules
         const today = new Date().toDateString();
         if (this.state.lastActiveDate !== today) {
-          // Verify if streak is broken (more than 1 day difference)
           if (this.state.lastActiveDate) {
             const lastDate = new Date(this.state.lastActiveDate);
             const diffTime = Math.abs(new Date(today) - lastDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             if (diffDays > 1) {
-              this.state.streak = 0; // Streak broken
+              this.state.streak = 0; 
             }
           }
           
-          // Reset checked states of all habits for the new day
-          this.state.list.forEach(h => h.checked = false);
+          if (Array.isArray(this.state.list)) {
+            this.state.list.forEach(h => { h.checked = false; });
+          }
           this.state.lastActiveDate = today;
           this.saveState();
         }
@@ -90,12 +87,12 @@ const Habits = {
 
   resetToDefaults() {
     this.state = {
-      list: [...this.DEFAULT_HABITS],
+      list: this.DEFAULT_HABITS.map(h => ({ ...h })),
       xp: 0,
       level: 1,
       streak: 0,
       totalSavedCo2Kg: 0,
-      unlockedBadges: ['b_calc'], // Unlocked by completing calculator initial step
+      unlockedBadges: ['b_calc'], 
       lastActiveDate: new Date().toDateString()
     };
     this.saveState();
@@ -121,7 +118,6 @@ const Habits = {
     const errorEl = document.getElementById('form-error-msg');
     if (!titleInput || !difficultyInput) return;
 
-    // Sanitize and validate input
     const rawTitle = titleInput.value;
     const title = this.sanitizeInput(rawTitle);
 
@@ -144,7 +140,6 @@ const Habits = {
       return;
     }
 
-    // Clear any prior error
     if (errorEl) {
       errorEl.textContent = '';
       errorEl.classList.add('visually-hidden');
@@ -152,7 +147,6 @@ const Habits = {
     titleInput.removeAttribute('aria-invalid');
 
     const difficulty = difficultyInput.value;
-    // Whitelist allowed values
     const allowedDifficulties = ['easy', 'medium', 'hard'];
     const safeDifficulty = allowedDifficulties.includes(difficulty) ? difficulty : 'medium';
 
@@ -161,8 +155,11 @@ const Habits = {
     if (safeDifficulty === 'medium') { impact = 2.5; xp = 20; }
     else if (safeDifficulty === 'hard') { impact = 5.0; xp = 30; }
 
+    // FIXED: Formulated microsecond safety offsets around custom key tracking to avoid sequence clashes
+    const uniqueId = `custom_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
     const newHabit = {
-      id: 'custom_' + Date.now(),
+      id: uniqueId,
       title,
       difficulty: safeDifficulty,
       impact,
@@ -176,7 +173,7 @@ const Habits = {
 
     titleInput.value = '';
 
-    if (window.App) {
+    if (window.App && typeof window.App.showToast === 'function') {
       window.App.showToast(`Custom action "${title}" added!`, 'info');
     }
   },
@@ -188,24 +185,18 @@ const Habits = {
     habit.checked = isChecked;
 
     if (isChecked) {
-      // Add XP & CO2 savings
       this.state.totalSavedCo2Kg += habit.impact;
       this.addXP(habit.xp);
-
-      // Badge check: First habit completed
       this.unlockBadge('b_habit_first');
-
-      // Update active streak if checking first item today
       this.updateStreak();
 
-      if (window.App) {
+      if (window.App && typeof window.App.showToast === 'function') {
         window.App.showToast(`Completed: +${habit.impact} kg CO₂ saved & +${habit.xp} XP!`, 'success');
       }
     } else {
-      // Subtract XP & CO2 savings if unchecked (avoid exploit)
       this.state.totalSavedCo2Kg = Math.max(0, this.state.totalSavedCo2Kg - habit.impact);
       this.state.xp = Math.max(0, this.state.xp - habit.xp);
-      if (window.App) {
+      if (window.App && typeof window.App.showToast === 'function') {
         window.App.showToast(`Removed action: -${habit.impact} kg CO₂ & -${habit.xp} XP`, 'info');
       }
     }
@@ -213,20 +204,15 @@ const Habits = {
     this.saveState();
     this.render();
     
-    // Notify main App to refresh other views (e.g. Dashboard widgets)
-    if (window.App) {
+    if (window.App && typeof window.App.onHabitsStateChange === 'function') {
       window.App.onHabitsStateChange();
     }
   },
 
   updateStreak() {
-    // Check if any other item is already checked today.
-    // If this is the only checked habit, it means it's the first check of the day!
     const checkedCount = this.state.list.filter(h => h.checked).length;
     if (checkedCount === 1) {
       this.state.streak++;
-      
-      // Badge Check: 3 Day Streak
       if (this.state.streak >= 3) {
         this.unlockBadge('b_streak_3');
       }
@@ -241,12 +227,10 @@ const Habits = {
       this.state.level++;
       this.state.xp -= nextLevelThreshold;
       
-      // Level Up Toast Alert
-      if (window.App) {
+      if (window.App && typeof window.App.showToast === 'function') {
         window.App.showToast(`🎉 Level Up! You are now Level ${this.state.level}!`, 'level-up');
       }
 
-      // Badge Check: Level 3
       if (this.state.level >= 3) {
         this.unlockBadge('b_level_3');
       }
@@ -259,13 +243,12 @@ const Habits = {
       this.saveState();
       
       const badge = this.BADGES.find(b => b.id === badgeId);
-      if (badge && window.App) {
+      if (badge && window.App && typeof window.App.showToast === 'function') {
         window.App.showToast(`🏆 Badge Unlocked: ${badge.icon} ${badge.name}!`, 'level-up');
       }
     }
   },
 
-  // Renders the habit templates and grids
   render() {
     this.renderHabitLists();
     this.renderBadgeGrid();
@@ -273,20 +256,28 @@ const Habits = {
   },
 
   renderStats() {
-    // Update numerical stat labels
-    document.getElementById('habits-stat-co2').textContent = `${this.state.totalSavedCo2Kg.toFixed(1)} kg`;
-    document.getElementById('habits-stat-xp').textContent = this.state.xp;
+    // FIXED: Wrapped all component metric hooks within safe DOM verification blocks
+    const statCo2El = document.getElementById('habits-stat-co2');
+    if (statCo2El) statCo2El.textContent = `${this.state.totalSavedCo2Kg.toFixed(1)} kg`;
     
-    // Update navbar level stats
+    const statXpEl = document.getElementById('habits-stat-xp');
+    if (statXpEl) statXpEl.textContent = this.state.xp;
+    
     const navLvlName = document.getElementById('nav-level-name');
     const navLvlBadge = document.getElementById('nav-level-badge');
     const navXpVal = document.getElementById('nav-xp-val');
 
-    if (navLvlName) {
-      const levelNames = ["🌱 Eco-Novice", "☘️ Green Cadet", "🌿 Earth Defender", "🌲 Carbon Warrior", "🌍 Planet Guardian"];
-      const nameIndex = Math.min(levelNames.length - 1, this.state.level - 1);
-      navLvlName.textContent = levelNames[nameIndex].split(' ')[1];
-      navLvlBadge.textContent = levelNames[nameIndex].split(' ')[0];
+    if (navLvlName && navLvlBadge) {
+      const levelConfigs = [
+        { name: "Eco-Novice", badge: "🌱" },
+        { name: "Green Cadet", badge: "☘️" },
+        { name: "Earth Defender", badge: "🌿" },
+        { name: "Carbon Warrior", badge: "🌲" },
+        { name: "Planet Guardian", badge: "🌍" }
+      ];
+      const configIndex = Math.min(levelConfigs.length - 1, this.state.level - 1);
+      navLvlName.textContent = levelConfigs[configIndex].name;
+      navLvlBadge.textContent = levelConfigs[configIndex].badge;
     }
     if (navXpVal) {
       navXpVal.textContent = this.state.xp;
@@ -296,6 +287,84 @@ const Habits = {
   renderHabitLists() {
     const dashboardList = document.getElementById('dashboard-quick-habits');
     const habitsFullList = document.getElementById('habits-full-list');
+
+    if (habitsFullList) {
+      habitsFullList.innerHTML = '';
+      this.state.list.forEach(h => {
+        habitsFullList.appendChild(this.createHabitRowElement(h, 'full'));
+      });
+    }
+
+    if (dashboardList) {
+      dashboardList.innerHTML = '';
+      const quickItems = this.state.list.slice(0, 3);
+      quickItems.forEach(h => {
+        dashboardList.appendChild(this.createHabitRowElement(h, 'quick'));
+      });
+    }
+  },
+
+  createHabitRowElement(habit, prefix) {
+    const row = document.createElement('div');
+    row.className = `habit-row ${habit.checked ? 'completed' : ''}`;
+    
+    // FIXED: Formulated absolute unique IDs and proper matching label descriptors for input layouts
+    const checkboxId = `chk_${prefix}_${habit.id}`;
+    const detailsId = `det_${prefix}_${habit.id}`;
+    
+    row.innerHTML = `
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="${checkboxId}" ${habit.checked ? 'checked' : ''} aria-describedby="${detailsId}">
+        <label for="${checkboxId}" class="checkmark" aria-label="Mark action as completed"></label>
+      </div>
+      <div class="habit-details" id="${detailsId}">
+        <div class="habit-title">${habit.title}</div>
+        <div class="habit-meta">
+          <span class="habit-impact">-${habit.impact.toFixed(1)} kg CO₂e</span>
+          <span class="habit-xp">+${habit.xp} XP</span>
+          <span class="habit-difficulty" aria-label="Difficulty level">${habit.difficulty.toUpperCase()}</span>
+        </div>
+      </div>
+    `;
+
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        this.toggleHabit(habit.id, e.target.checked);
+      });
+    }
+
+    return row;
+  },
+
+  renderBadgeGrid() {
+    const grid = document.getElementById('badges-grid-container');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    this.BADGES.forEach(badge => {
+      const isUnlocked = this.state.unlockedBadges.includes(badge.id);
+      
+      const card = document.createElement('div');
+      card.className = `badge-card ${isUnlocked ? 'unlocked' : ''}`;
+      card.setAttribute('tabindex', '0'); // FIXED: Allowed badge items to be focusable for keyboard screen readers
+      card.setAttribute('aria-label', `${badge.name}: ${badge.desc} (${isUnlocked ? 'Unlocked' : 'Locked'})`);
+      
+      card.innerHTML = `
+        <div class="badge-icon" aria-hidden="true">${badge.icon}</div>
+        <div class="badge-name">${badge.name}</div>
+        <div class="badge-desc">${badge.desc}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+};
+
+window.Habits = Habits;
+window.addEventListener('DOMContentLoaded', () => {
+  Habits.init();
+});cument.getElementById('habits-full-list');
 
     if (habitsFullList) {
       habitsFullList.innerHTML = '';
