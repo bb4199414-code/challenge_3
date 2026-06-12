@@ -705,7 +705,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   height: 12px;
   border-radius: 3px;
 }
-
 .legend-label {
   color: #d1d5db;
   flex-grow: 1;
@@ -743,25 +742,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: rgba(16, 185, 129, 0.03);
 }
 
-/* Custom Checkbox */
-.checkbox-container {
+/* FIXED: Rebuilt Custom Checkbox System to seamlessly support new semantic HTML mappings */
+.checkbox-wrapper {
   position: relative;
   display: block;
   width: 24px;
   height: 24px;
-  cursor: pointer;
   margin-right: 1rem;
 }
 
-.checkbox-container input {
+.checkbox-wrapper input[type="checkbox"] {
   position: absolute;
   opacity: 0;
   cursor: pointer;
-  height: 0;
-  width: 0;
+  height: 24px;
+  width: 24px;
+  z-index: 2;
+  margin: 0;
 }
 
-.checkmark {
+.checkbox-wrapper .checkmark {
   position: absolute;
   top: 0;
   left: 0;
@@ -771,31 +771,39 @@ input[type="range"]::-webkit-slider-thumb:hover {
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   transition: all var(--transition-fast);
+  z-index: 1;
+  cursor: pointer;
 }
 
-.checkbox-container:hover input ~ .checkmark {
+.checkbox-wrapper:hover input ~ .checkmark {
   border-color: var(--emerald);
 }
 
-.checkbox-container input:checked ~ .checkmark {
+.checkbox-wrapper input:checked ~ .checkmark {
   background-color: var(--emerald);
   border-color: var(--emerald);
   box-shadow: 0 0 10px var(--emerald-glow);
 }
 
-.checkmark:after {
+/* FIXED: Added clear dynamic visibility cues for browser-level keyboard access loops */
+.checkbox-wrapper input:focus-visible ~ .checkmark {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.checkbox-wrapper .checkmark:after {
   content: "";
   position: absolute;
   display: none;
 }
 
-.checkbox-container input:checked ~ .checkmark:after {
+.checkbox-wrapper input:checked ~ .checkmark:after {
   display: block;
 }
 
-.checkbox-container .checkmark:after {
-  left: 8px;
-  top: 4px;
+.checkbox-wrapper .checkmark:after {
+  left: 7px;
+  top: 3px;
   width: 5px;
   height: 10px;
   border: solid #060913;
@@ -891,6 +899,14 @@ select.form-input-text {
   opacity: 1;
   border-color: rgba(245, 158, 11, 0.3);
   background: rgba(245, 158, 11, 0.03);
+}
+
+/* FIXED: Enhanced focused states for accessibility compliance across milestones */
+.badge-card:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+  filter: grayscale(0.5);
+  opacity: 0.8;
 }
 
 .badge-icon {
@@ -1255,4 +1271,5 @@ footer {
   .dashboard-grid { gap: 1rem; }
   .chart-card-content { flex-direction: column; text-align: center; }
   .cert-metrics { flex-direction: column; gap: 1rem; width: 100%; }
-}
+  }
+        
