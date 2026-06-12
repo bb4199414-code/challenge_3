@@ -18,23 +18,28 @@ const Dashboard = {
   update(footprintData, streak, totalOffsetsTons) {
     if (!footprintData) return;
 
-    // 1. Update Stat Cards
-    document.getElementById('dash-footprint-val').textContent = footprintData.total.toFixed(1);
-    document.getElementById('dash-streak-val').textContent = streak;
+    // 1. Update Stat Cards with strict null safety guards
+    const footprintValEl = document.getElementById('dash-footprint-val');
+    if (footprintValEl) footprintValEl.textContent = footprintData.total.toFixed(1);
+    
+    const streakValEl = document.getElementById('dash-streak-val');
+    if (streakValEl) streakValEl.textContent = streak;
 
     const offsetPercentage = footprintData.total > 0 
       ? Math.min(100, Math.round((totalOffsetsTons / footprintData.total) * 100))
       : 0;
     
     const offsetPctEl = document.getElementById('dash-offset-pct');
-    offsetPctEl.textContent = `${offsetPercentage}% Neutral`;
-    if (offsetPercentage >= 100) {
-      offsetPctEl.style.color = '#10b981';
-      offsetPctEl.innerHTML = `100% Neutral <span>🍀</span>`;
-    } else if (offsetPercentage > 0) {
-      offsetPctEl.style.color = '#06b6d4';
-    } else {
-      offsetPctEl.style.color = 'white';
+    if (offsetPctEl) {
+      offsetPctEl.textContent = `${offsetPercentage}% Neutral`;
+      if (offsetPercentage >= 100) {
+        offsetPctEl.style.color = '#10b981';
+        offsetPctEl.innerHTML = `100% Neutral <span aria-hidden="true">🍀</span>`;
+      } else if (offsetPercentage > 0) {
+        offsetPctEl.style.color = '#06b6d4';
+      } else {
+        offsetPctEl.style.color = 'white';
+      }
     }
 
     // 2. Render Donut Chart
@@ -52,7 +57,6 @@ const Dashboard = {
     const legendContainer = document.getElementById('dashboard-legend-list');
     if (!svg || !legendContainer) return;
 
-    // Reset SVG segments except for the base circle and text center elements
     const segments = svg.querySelectorAll('.donut-segment');
     segments.forEach(s => s.remove());
 
@@ -61,20 +65,17 @@ const Dashboard = {
     const categories = data.categories;
     const total = data.total;
 
-    // Center text updater
     const centerValEl = document.getElementById('donut-center-val');
     const updateCenter = (val, label) => {
-      centerValEl.textContent = Number(val).toFixed(1);
+      if (centerValEl) centerValEl.textContent = Number(val).toFixed(1);
       const labelText = svg.querySelector('.donut-center-text text:nth-child(2)');
       if (labelText) labelText.textContent = label.toUpperCase();
     };
 
-    // Set initial center text to total
     updateCenter(total, 'TONS/YR');
 
     let currentOffset = 0;
 
-    // Loop through each category and draw segment
     Object.keys(this.CATEGORIES).forEach(key => {
       const catVal = categories[key] || 0;
       const catConfig = this.CATEGORIES[key];
@@ -82,7 +83,6 @@ const Dashboard = {
       const segmentLength = percentage * this.CIRCUMFERENCE;
 
       if (segmentLength > 0) {
-        // Create SVG segment path
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('class', 'donut-segment');
         circle.setAttribute('cx', '100');
@@ -90,50 +90,63 @@ const Dashboard = {
         circle.setAttribute('r', '70');
         circle.setAttribute('stroke', catConfig.color);
         circle.setAttribute('stroke-dasharray', `${segmentLength} ${this.CIRCUMFERENCE - segmentLength}`);
-        circle.setAttribute('stroke-dashoffset', -currentOffset);
+        circle.setAttribute('stroke-dashoffset', -currentOffset.toString());
         circle.style.transition = 'stroke-width 0.2s, stroke 0.2s';
         
-        // Hover effects
-        circle.addEventListener('mouseenter', () => {
+        // FIXED: Added full ARIA accessibility and keyboard compliance hooks to graphic segments
+        circle.setAttribute('role', 'img');
+        circle.setAttribute('tabindex', '0');
+        circle.setAttribute('aria-label', `${catConfig.label}: ${catVal.toFixed(1)} Tons, ${Math.round(percentage * 100)}%`);
+        
+        const activateSegment = () => {
           circle.setAttribute('stroke-width', '18');
           updateCenter(catVal, catConfig.label);
-        });
+        };
 
-        circle.addEventListener('mouseleave', () => {
+        const deactivateSegment = () => {
           circle.setAttribute('stroke-width', '14');
           updateCenter(total, 'TONS/YR');
-        });
+        };
+
+        circle.addEventListener('mouseenter', activateSegment);
+        circle.addEventListener('mouseleave', deactivateSegment);
+        circle.addEventListener('focus', activateSegment);
+        circle.addEventListener('blur', deactivateSegment);
 
         svg.appendChild(circle);
         currentOffset += segmentLength;
       }
 
-      // Append to legend list
       const pctDisplay = total > 0 ? Math.round(percentage * 100) : 0;
       const legendItem = document.createElement('div');
       legendItem.className = 'legend-item';
+      legendItem.setAttribute('tabindex', '0'); // FIXED: Allowed keyboard users to access legend benchmarks
       legendItem.innerHTML = `
         <div class="legend-color-dot" style="background: ${catConfig.color};"></div>
         <span class="legend-label">${catConfig.icon} ${catConfig.label}</span>
         <span class="legend-val">${catVal.toFixed(1)} t (${pctDisplay}%)</span>
       `;
 
-      // Legend hover link to SVG highlights
-      legendItem.addEventListener('mouseenter', () => {
+      const highlightSegment = () => {
         const matchingCircle = Array.from(svg.querySelectorAll('.donut-segment')).find(
           c => c.getAttribute('stroke') === catConfig.color
         );
         if (matchingCircle) matchingCircle.setAttribute('stroke-width', '18');
         updateCenter(catVal, catConfig.label);
-      });
+      };
 
-      legendItem.addEventListener('mouseleave', () => {
+      const resetSegment = () => {
         const matchingCircle = Array.from(svg.querySelectorAll('.donut-segment')).find(
           c => c.getAttribute('stroke') === catConfig.color
         );
         if (matchingCircle) matchingCircle.setAttribute('stroke-width', '14');
         updateCenter(total, 'TONS/YR');
-      });
+      };
+
+      legendItem.addEventListener('mouseenter', highlightSegment);
+      legendItem.addEventListener('mouseleave', resetSegment);
+      legendItem.addEventListener('focus', highlightSegment);
+      legendItem.addEventListener('blur', resetSegment);
 
       legendContainer.appendChild(legendItem);
     });
@@ -144,10 +157,8 @@ const Dashboard = {
     if (!tipsBox) return;
 
     tipsBox.innerHTML = '';
-
     const categories = data.categories;
     
-    // Sort categories by descending footprint
     const sortedCats = Object.keys(categories)
       .map(key => ({ key, val: categories[key] }))
       .sort((a, b) => b.val - a.val);
@@ -179,14 +190,14 @@ const Dashboard = {
       }
     };
 
-    // Render the top 2 highest carbon driving categories as tips
     const activeTips = sortedCats.slice(0, 2);
     
     activeTips.forEach(tip => {
       const template = tipsTemplates[tip.key];
+      if (!template) return;
+      
       const tipCard = document.createElement('div');
       
-      // Select appropriate theme borders
       let borderColor = 'rgba(255,255,255,0.06)';
       let glowColor = 'transparent';
       if (template.theme === 'teal') { borderColor = 'rgba(6, 182, 212, 0.2)'; glowColor = 'rgba(6, 182, 212, 0.05)'; }
@@ -202,7 +213,7 @@ const Dashboard = {
 
       tipCard.innerHTML = `
         <div style="font-weight: 700; font-size: 0.9rem; color: white; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
-          <span>${template.icon}</span> ${template.title}
+          <span aria-hidden="true">${template.icon}</span> ${template.title}
         </div>
         <p style="font-size: 0.78rem; line-height: 1.4; color: #9ca3af;">${template.text}</p>
       `;
@@ -210,7 +221,6 @@ const Dashboard = {
     });
   },
 
-  // Interactive Action Simulator
   baselineFootprint: null,
 
   updateSimulatorBaseline(footprintData) {
@@ -231,53 +241,63 @@ const Dashboard = {
   runSimulation() {
     if (!this.baselineFootprint) return;
 
-    // Get current simulator sliders values
-    const energyVal = Number(document.getElementById('sim-range-energy').value); // 0, 1, 2
-    const commuteVal = Number(document.getElementById('sim-range-commute').value); // 0 - 100
-    const dietVal = Number(document.getElementById('sim-range-diet').value); // 0, 1, 2
+    // FIXED: Formulated absolute null-checks around the simulation slider hooks
+    const energyRange = document.getElementById('sim-range-energy');
+    const commuteRange = document.getElementById('sim-range-commute');
+    const dietRange = document.getElementById('sim-range-diet');
 
-    // Label indicators
+    if (!energyRange || !commuteRange || !dietRange) return;
+
+    const energyVal = Number(energyRange.value); 
+    const commuteVal = Number(commuteRange.value); 
+    const dietVal = Number(dietRange.value); 
+
+    // Synchronize current slider value indicators safely
     const energyLabels = ['No Change', 'Partial Solar (Save 50%)', 'Green Tariff (Save 95%)'];
-    document.getElementById('sim-val-energy').textContent = energyLabels[energyVal];
-    document.getElementById('sim-val-energy').style.color = energyVal > 0 ? '#10b981' : '#9ca3af';
+    const energyValEl = document.getElementById('sim-val-energy');
+    if (energyValEl) {
+      energyValEl.textContent = energyLabels[energyVal];
+      energyValEl.style.color = energyVal > 0 ? '#10b981' : '#9ca3af';
+    }
 
-    document.getElementById('sim-val-commute').textContent = commuteVal > 0 ? `${commuteVal}% Less` : '0% Less';
-    document.getElementById('sim-val-commute').style.color = commuteVal > 0 ? '#10b981' : '#9ca3af';
+    const commuteValEl = document.getElementById('sim-val-commute');
+    if (commuteValEl) {
+      commuteValEl.textContent = commuteVal > 0 ? `${commuteVal}% Less` : '0% Less';
+      commuteValEl.style.color = commuteVal > 0 ? '#10b981' : '#9ca3af';
+    }
 
     const dietLabels = ['No Change', 'Shift to Veggie', 'Shift to Vegan'];
-    document.getElementById('sim-val-diet').textContent = dietLabels[dietVal];
-    document.getElementById('sim-val-diet').style.color = dietVal > 0 ? '#10b981' : '#9ca3af';
+    const dietValEl = document.getElementById('sim-val-diet');
+    if (dietValEl) {
+      dietValEl.textContent = dietLabels[dietVal];
+      dietValEl.style.color = dietVal > 0 ? '#10b981' : '#9ca3af';
+    }
 
-    // Math calculation of simulated reductions
+    // Math calculations
     const cats = this.baselineFootprint.categories;
-    
-    // Commute savings (only applies to car component of transport, which is roughly 75% of baseline transport)
     const commuteReduction = (cats.transport * 0.75) * (commuteVal / 100);
 
-    // Energy savings
     let energyReduction = 0;
     if (energyVal === 1) energyReduction = cats.energy * 0.5;
     else if (energyVal === 2) energyReduction = cats.energy * 0.95;
 
-    // Diet savings
     let dietReduction = 0;
     if (dietVal === 1) {
-      // Shift meat diet to vegetarian (average 3.0 or 1.8 down to 1.1)
-      dietReduction = Math.max(0, cats.food * 0.35); // Approx 35% savings
+      dietReduction = Math.max(0, cats.food * 0.35); 
     } else if (dietVal === 2) {
-      // Shift meat diet to vegan (average down to 0.65)
-      dietReduction = Math.max(0, cats.food * 0.6); // Approx 60% savings
+      dietReduction = Math.max(0, cats.food * 0.6); 
     }
 
     const totalSavings = commuteReduction + energyReduction + dietReduction;
     const simulatedFootprint = Math.max(0.2, this.baselineFootprint.total - totalSavings);
 
-    // Render simulated value inside donut center text when sliders are used!
     const centerValEl = document.getElementById('donut-center-val');
-    if (totalSavings > 0) {
-      centerValEl.innerHTML = `${simulatedFootprint.toFixed(1)} <span style="font-size: 0.65rem; color:#10b981; display:block; margin-top:-2px;">saved ${(totalSavings).toFixed(1)}t</span>`;
-    } else {
-      centerValEl.textContent = this.baselineFootprint.total.toFixed(1);
+    if (centerValEl) {
+      if (totalSavings > 0) {
+        centerValEl.innerHTML = `${simulatedFootprint.toFixed(1)} <span style="font-size: 0.65rem; color:#10b981; display:block; margin-top:-2px;">saved ${(totalSavings).toFixed(1)}t</span>`;
+      } else {
+        centerValEl.textContent = this.baselineFootprint.total.toFixed(1);
+      }
     }
   }
 };
