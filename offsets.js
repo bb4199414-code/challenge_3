@@ -10,7 +10,8 @@ const Offsets = {
       price: 15.00,
       rating: '4.9',
       image: 'assets/amazon_reforestation.png',
-      badge: 'Certified Gold Standard'
+      badge: 'Certified Gold Standard',
+      altText: 'Native tree seedlings being planted inside the Amazon basin reforestation zone'
     },
     {
       id: 'p2',
@@ -20,7 +21,8 @@ const Offsets = {
       price: 8.50,
       rating: '4.7',
       image: 'assets/wind_turbines.png',
-      badge: 'VCS Certified'
+      badge: 'VCS Certified',
+      altText: 'Modern green wind turbines operating clean power grids across Kutch fields'
     },
     {
       id: 'p3',
@@ -30,7 +32,8 @@ const Offsets = {
       price: 22.00,
       rating: '4.9',
       image: 'assets/ocean_cleanup.png',
-      badge: 'Ocean Blue Verified'
+      badge: 'Ocean Blue Verified',
+      altText: 'Environmental marine extraction vessel harvesting microplastics out of the water grid'
     }
   ],
 
@@ -49,7 +52,11 @@ const Offsets = {
     const saved = localStorage.getItem('climatica_offsets_state');
     if (saved) {
       try {
-        this.state = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          this.state.totalOffsetTons = typeof parsed.totalOffsetTons === 'number' ? parsed.totalOffsetTons : 0;
+          this.state.certHolderName = typeof parsed.certHolderName === 'string' ? parsed.certHolderName : 'Eco Explorer';
+        }
       } catch (e) {
         console.error("Error loading offsets state, resetting.", e);
         this.state = { totalOffsetTons: 0, certHolderName: 'Eco Explorer' };
@@ -62,14 +69,12 @@ const Offsets = {
   },
 
   setupListeners() {
-    // Generate certificate button
     const btnRender = document.getElementById('btn-render-cert');
     if (btnRender) {
       btnRender.addEventListener('click', () => {
         const nameInput = document.getElementById('cert-name-input');
         if (nameInput) {
           const rawName = nameInput.value;
-          // Sanitize: strip HTML, escape special chars, enforce max length
           const name = rawName.replace(/<[^>]*>/g, '').replace(/[&<>"'/]/g, (c) => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;'
           })[c] || c).trim().slice(0, 80);
@@ -78,11 +83,11 @@ const Offsets = {
             this.state.certHolderName = name;
             this.saveState();
             this.updateCertificateUI();
-            if (window.App) {
+            if (window.App && typeof window.App.showToast === 'function') {
               window.App.showToast("Certificate generated successfully!", "success");
             }
           } else {
-            if (window.App) {
+            if (window.App && typeof window.App.showToast === 'function') {
               window.App.showToast("Please enter a valid name (at least 2 characters).", "info");
             }
           }
@@ -90,7 +95,6 @@ const Offsets = {
       });
     }
 
-    // Print certificate button
     const btnPrint = document.getElementById('btn-print-cert');
     if (btnPrint) {
       btnPrint.addEventListener('click', () => {
@@ -107,37 +111,31 @@ const Offsets = {
     this.saveState();
     this.render();
 
-    // Reward XP for offsetting (150 XP per Ton offset!)
-    if (window.Habits) {
+    if (window.Habits && typeof window.Habits.addXP === 'function') {
       window.Habits.addXP(Math.round(tons * 150));
       
-      // Badge Check: Offset First 1.0 Ton
-      if (this.state.totalOffsetTons >= 1.0) {
+      if (this.state.totalOffsetTons >= 1.0 && typeof window.Habits.unlockBadge === 'function') {
         window.Habits.unlockBadge('b_offset_first');
       }
 
-      // Badge Check: Net Zero Hero (Offset >= annual footprint)
       const currentFootprint = window.App?.state?.footprint?.total || 0;
-      if (currentFootprint > 0 && this.state.totalOffsetTons >= currentFootprint) {
+      if (currentFootprint > 0 && this.state.totalOffsetTons >= currentFootprint && typeof window.Habits.unlockBadge === 'function') {
         window.Habits.unlockBadge('b_offset_full');
       }
     }
 
-    // Refresh general App views (Dashboard status update)
-    if (window.App) {
+    if (window.App && typeof window.App.onOffsetsStateChange === 'function') {
       window.App.onOffsetsStateChange();
       window.App.showToast(`Purchased ${tons} Ton offset: Supported "${project.title}"!`, 'success');
     }
   },
 
   render() {
-    // Render Stats
     const statsEl = document.getElementById('offsets-stat-tons');
     if (statsEl) {
       statsEl.textContent = this.state.totalOffsetTons.toFixed(1);
     }
 
-    // Render Project Cards
     const container = document.getElementById('offset-projects-container');
     if (!container) return;
 
@@ -150,7 +148,7 @@ const Offsets = {
       card.innerHTML = `
         <div class="offset-media">
           <div class="offset-project-badge">${project.badge}</div>
-          <img src="${project.image}" alt="${project.title}">
+          <img src="${project.image}" alt="${project.altText || project.title}">
         </div>
         <h3 style="font-size: 1.1rem; color: white; margin-bottom: 0.25rem;">${project.title}</h3>
         <div style="font-size: 0.75rem; color: var(--teal); font-weight:600; margin-bottom: 0.75rem; display:flex; justify-content:space-between;">
@@ -163,19 +161,20 @@ const Offsets = {
             $${project.price.toFixed(2)} <span>/ Ton</span>
           </div>
           <div style="display:flex; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm btn-offset-buy" data-id="${project.id}" data-tons="0.5" style="padding:0.4rem 0.75rem; font-size:0.8rem;">+0.5t</button>
-            <button class="btn btn-primary btn-sm btn-offset-buy" data-id="${project.id}" data-tons="1.0" style="padding:0.4rem 0.75rem; font-size:0.8rem;">+1.0t</button>
+            <button class="btn btn-secondary btn-sm btn-offset-buy" data-id="${project.id}" data-tons="0.5" aria-label="Purchase 0.5 Tons offset from ${project.title}">+0.5t</button>
+            <button class="btn btn-primary btn-sm btn-offset-buy" data-id="${project.id}" data-tons="1.0" aria-label="Purchase 1.0 Ton offset from ${project.title}">+1.0t</button>
           </div>
         </div>
       `;
 
-      // Setup Buy Buttons listener inside cards
       const buyButtons = card.querySelectorAll('.btn-offset-buy');
       buyButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const pid = e.target.getAttribute('data-id');
-          const tons = parseFloat(e.target.getAttribute('data-tons'));
-          this.purchaseOffset(pid, tons);
+          const pid = e.currentTarget.getAttribute('data-id');
+          const tons = parseFloat(e.currentTarget.getAttribute('data-tons'));
+          if (pid && !isNaN(tons)) {
+            this.purchaseOffset(pid, tons);
+          }
         });
       });
 
@@ -187,15 +186,17 @@ const Offsets = {
 
   updateCertificateUI() {
     const certName = document.getElementById('cert-display-name');
-    const certFootprint = document.getElementById('cert-val-footprint');
-    const certOffset = document.getElementById('cert-val-offset');
-    const certDate = document.getElementById('cert-date');
+    if (certName) certName.textContent = this.state.certHolderName;
 
     const annualFootprint = window.App?.state?.footprint?.total || 0;
-
-    if (certName) certName.textContent = this.state.certHolderName;
+    
+    const certFootprint = document.getElementById('cert-val-footprint');
     if (certFootprint) certFootprint.textContent = annualFootprint.toFixed(1);
+    
+    const certOffset = document.getElementById('cert-val-offset');
     if (certOffset) certOffset.textContent = this.state.totalOffsetTons.toFixed(1);
+    
+    const certDate = document.getElementById('cert-date');
     if (certDate) {
       const options = { year: 'numeric', month: 'long', day: 'numeric' };
       certDate.textContent = new Date().toLocaleDateString('en-US', options);
@@ -203,13 +204,24 @@ const Offsets = {
   },
 
   printCertificate() {
-    const certContent = document.getElementById('printable-certificate').innerHTML;
+    const targetElement = document.getElementById('printable-certificate');
+    if (!targetElement) return;
     
-    // Open a simple print window to print certificate cleanly
+    const certContent = targetElement.innerHTML;
     const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast("Popup blocked! Please allow popups to save your certificate.", "info");
+      }
+      return;
+    }
+
     printWindow.document.write(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="en">
         <head>
+          <meta charset="UTF-8">
           <title>Climatica - Carbon Neutral Certificate</title>
           <style>
             body {
@@ -232,7 +244,7 @@ const Offsets = {
               box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
             }
             .cert-seal { font-size: 3rem; margin-bottom: 10px; }
-            .cert-title { font-size: 1.8rem; color: #10b981; font-weight: bold; margin-bottom: 20px; font-family: 'Outfit', sans-serif; }
+            .cert-title { font-size: 1.8rem; color: #10b981; font-weight: bold; margin-bottom: 20px; }
             .cert-recipient { font-size: 1.6rem; font-weight: bold; border-bottom: 2px solid rgba(255,255,255,0.2); display: inline-block; padding: 0 30px 5px 30px; margin-bottom: 20px; }
             .cert-text { font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 25px; }
             .cert-metrics { display: inline-flex; gap: 30px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-bottom: 25px; }
