@@ -53,12 +53,12 @@ const Calculator = {
   },
 
   setupListeners() {
-    // Range Sliders
+    // Range Sliders configuration mapping
     const sliders = [
-      { id: 'calc-car-distance', valId: 'val-car-distance', key: 'carDistance' },
-      { id: 'calc-flights', valId: 'val-flights', key: 'flights' },
-      { id: 'calc-electricity', valId: 'val-electricity', key: 'electricityBill' },
-      { id: 'calc-food-waste', valId: 'val-food-waste', key: 'foodWaste' }
+      { id: 'calc-car-distance', valId: 'val-car-distance', descId: 'val-car-distance-desc', key: 'carDistance', unit: 'km' },
+      { id: 'calc-flights', valId: 'val-flights', descId: 'val-flights-desc', key: 'flights', unit: 'hours total' },
+      { id: 'calc-electricity', valId: 'val-electricity', descId: 'val-electricity-desc', key: 'electricityBill', unit: 'dollars' },
+      { id: 'calc-food-waste', valId: 'val-food-waste', descId: 'val-food-waste-desc', key: 'foodWaste', unit: 'percent' }
     ];
 
     sliders.forEach(slider => {
@@ -66,7 +66,18 @@ const Calculator = {
       if (el) {
         el.addEventListener('input', (e) => {
           const val = Number(e.target.value);
-          document.getElementById(slider.valId).textContent = val;
+          
+          // Update visual text indicators safely
+          const valEl = document.getElementById(slider.valId);
+          if (valEl) valEl.textContent = val;
+          
+          // FIXED: Update dynamic aria screen-reader states real-time
+          el.setAttribute('aria-valuenow', val);
+          const descEl = document.getElementById(slider.descId);
+          if (descEl) {
+            descEl.textContent = `Currently set to ${val} ${slider.unit}`;
+          }
+
           this.selections[slider.key] = val;
           this.calculateLive();
         });
@@ -110,10 +121,8 @@ const Calculator = {
     };
 
     cards.forEach(card => {
-      // Mouse click
       card.addEventListener('click', () => selectCard(card));
 
-      // Keyboard: Enter or Space activates the card
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -124,34 +133,37 @@ const Calculator = {
   },
 
   updateSliderValues() {
-    document.getElementById('val-car-distance').textContent = this.selections.carDistance;
-    document.getElementById('val-flights').textContent = this.selections.flights;
-    document.getElementById('val-electricity').textContent = this.selections.electricityBill;
-    document.getElementById('val-food-waste').textContent = this.selections.foodWaste;
+    // FIXED: Wrapped element updates with safety hooks to prevent null references crashing calculations
+    const sliderMap = [
+      { id: 'calc-car-distance', valId: 'val-car-distance', val: this.selections.carDistance },
+      { id: 'calc-flights', valId: 'val-flights', val: this.selections.flights },
+      { id: 'calc-electricity', valId: 'val-electricity', val: this.selections.electricityBill },
+      { id: 'calc-food-waste', valId: 'val-food-waste', val: this.selections.foodWaste }
+    ];
+
+    sliderMap.forEach(item => {
+      const inputEl = document.getElementById(item.id);
+      const valEl = document.getElementById(item.valId);
+      if (inputEl) inputEl.setAttribute('aria-valuenow', item.val);
+      if (valEl) valEl.textContent = item.val;
+    });
   },
 
-  // Calculate live results based on selections
   calculateCurrentFootprint() {
     const s = this.selections;
     const coef = this.COEFFICIENTS;
 
-    // 1. Transport emissions
-    // Weekly km converted to annual: km * 52. Then times fuel multiplier
     const carEmissions = (s.carDistance * 52) * coef.carKm * coef.carEngine[s.carEngine];
     const flightEmissions = s.flights * coef.flightHour;
     const transportTotal = carEmissions + flightEmissions;
 
-    // 2. Energy emissions
     const energyTotal = s.electricityBill * coef.electricityDollar * coef.cleanEnergy[s.cleanEnergy];
 
-    // 3. Food emissions
     const dietBase = coef.diet[s.diet];
-    const wastePenalty = (s.foodWaste / 100) * 0.6; // Higher waste results in up to 0.6 tons of extra waste emissions
+    const wastePenalty = (s.foodWaste / 100) * 0.6;
     const foodTotal = dietBase + wastePenalty;
 
-    // 4. Shopping emissions
     const shoppingTotal = coef.shopping[s.shopping];
-
     const total = transportTotal + energyTotal + foodTotal + shoppingTotal;
 
     return {
@@ -175,19 +187,22 @@ const Calculator = {
 
   handleNext() {
     if (this.currentStep < this.totalSteps - 1) {
-      // Go to next slide
-      document.getElementById(`step-${this.currentStep}`).classList.remove('active');
-      this.currentStep++;
-      document.getElementById(`step-${this.currentStep}`).classList.add('active');
+      const currentStepEl = document.getElementById(`step-${this.currentStep}`);
+      if (currentStepEl) currentStepEl.classList.remove('active');
       
-      // Update progress visual indicators
+      this.currentStep++;
+      
+      const nextStepEl = document.getElementById(`step-${this.currentStep}`);
+      if (nextStepEl) {
+        nextStepEl.classList.add('active');
+        // FIXED: Shift keyboard focus to the newly revealed container view block for step changes
+        nextStepEl.focus();
+      }
+      
       this.updateProgressUI();
     } else {
-      // Completed calculator
       const finalReport = this.calculateCurrentFootprint();
-      
-      // Save footprint data to global App state and trigger layout change
-      if (window.App) {
+      if (window.App && typeof window.App.onCalculatorComplete === 'function') {
         window.App.onCalculatorComplete(finalReport, this.selections);
       }
     }
@@ -195,40 +210,58 @@ const Calculator = {
 
   handleBack() {
     if (this.currentStep > 0) {
-      document.getElementById(`step-${this.currentStep}`).classList.remove('active');
+      const currentStepEl = document.getElementById(`step-${this.currentStep}`);
+      if (currentStepEl) currentStepEl.classList.remove('active');
+      
       this.currentStep--;
-      document.getElementById(`step-${this.currentStep}`).classList.add('active');
+      
+      const prevStepEl = document.getElementById(`step-${this.currentStep}`);
+      if (prevStepEl) {
+        prevStepEl.classList.add('active');
+        prevStepEl.focus();
+      }
       
       this.updateProgressUI();
     }
   },
 
   updateProgressUI() {
-    // Update step dots classes
     const dots = document.querySelectorAll('.step-dot');
     dots.forEach((dot, index) => {
       dot.classList.remove('active', 'completed');
       if (index === this.currentStep) {
         dot.classList.add('active');
-      } else if (index < this.currentStep) {
-        dot.classList.add('completed');
+        dot.setAttribute('aria-current', 'step');
+      } else {
+        dot.removeAttribute('aria-current');
+        if (index < this.currentStep) {
+          dot.classList.add('completed');
+        }
       }
     });
 
-    // Update progress bar width line
     const progressPct = (this.currentStep / (this.totalSteps - 1)) * 100;
-    document.getElementById('wizard-progress-bar').style.width = `${progressPct}%`;
+    const progressBar = document.getElementById('wizard-progress-bar');
+    if (progressBar) progressBar.style.width = `${progressPct}%`;
+    
+    const progressContainer = document.getElementById('wizard-progressbar');
+    if (progressContainer) progressContainer.setAttribute('aria-valuenow', this.currentStep + 1);
 
-    // Toggle Back button enabled state
+    // FIXED: Corrected full accessibility sync for navigation action handlers
     const btnBack = document.getElementById('btn-calc-back');
-    btnBack.disabled = this.currentStep === 0;
+    if (btnBack) {
+      const isFirstStep = this.currentStep === 0;
+      btnBack.disabled = isFirstStep;
+      btnBack.setAttribute('aria-disabled', isFirstStep ? 'true' : 'false');
+    }
 
-    // Change Next button text on last step
     const btnNext = document.getElementById('btn-calc-next');
-    if (this.currentStep === this.totalSteps - 1) {
-      btnNext.innerHTML = 'Complete Setup <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-    } else {
-      btnNext.textContent = 'Next';
+    if (btnNext) {
+      if (this.currentStep === this.totalSteps - 1) {
+        btnNext.innerHTML = 'Complete Setup <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+      } else {
+        btnNext.textContent = 'Next';
+      }
     }
   },
 
@@ -236,14 +269,14 @@ const Calculator = {
     this.currentStep = 0;
     this.updateProgressUI();
     
-    // Hide all steps, make first active
     for (let i = 0; i < this.totalSteps; i++) {
       const stepEl = document.getElementById(`step-${i}`);
       if (stepEl) {
         stepEl.classList.remove('active');
       }
     }
-    document.getElementById('step-0').classList.add('active');
+    const stepZero = document.getElementById('step-0');
+    if (stepZero) stepZero.classList.add('active');
     
     this.calculateLive();
   }
